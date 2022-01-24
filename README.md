@@ -1,6 +1,6 @@
-# Projection Camera Calibration Tool
+# d-CPCT, DCamera Projector Calibration Tool
 
-Projector-Depth Camera Calibration Tool using Interface with Python.
+Depth Camera-Projector Calibration Tool using Interface with Python.
 
 ## System
 
