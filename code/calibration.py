@@ -1,44 +1,72 @@
+## ToDo
+## A. Automatic View Window Mapping
+## B. FPS Measurement
+
 import os
+import json # for Make Calibration Config File
 import argparse
-import json
+
 import winsound as sd
 import time
 import ctypes
 import screeninfo as sinfo
 
 import cv2
-import open3d as o3d
+import open3d as o3d # for MS Azure Kinect
 
-def print_info(msg) -> None:
+def print_info(msg: str, **kwargs) -> None:
+    s: int = 2000
+    
+    for key, value in kwargs.items():
+        #if 'info' in kwargs.keys():
+        if key.lower() == 'info' and value.lower() == 'fail':
+            s = 3000
+            
     print(msg)
-    sd.Beep(2000, 100)    
+    sd.Beep(s, 100)    
 
 def calibration(args: argparse.ArgumentParser) -> None:
     
     if not os.path.isdir("calibration"):
         os.mkdir("calibration")
     
-    VIEW = False
+    # Status
+    # ├┬1. View Mode        (validate viewing)
+    # │└─ # STATUS = VIEW
+    # └┬2. Calibration Mode (make config file)
+    #  └─ # STATUS = CALB
     
-    if VIEW == True:
-        cap = cv2.VideoCapture(0)
+    STATUS = 'VIEW' # To be replaced to argparse
+    
+    if STATUS.upper() == 'VIEW':
+        cap = cv2.VideoCapture(1)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         
         while True:            
             ret, frame = cap.read()
             
+            if ret == False:
+                print_info("[FAIL] Camera Connection Failed", info='fail')
+                break
+            
             binary = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             ret, binary = cv2.threshold(binary, 127, 255, cv2.THRESH_BINARY_INV)
             
-            binary, contour, hrc = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            print(len(contour), hrc)
+            contour, hrc = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            #print(len(contour), hrc)
             #for i, cont in enumerate(contour):
-            cv2.drawContours(frame, contour, -1, 2)
-            
-            cv2.imshow("ddd", frame)
-            
+            cv2.drawContours(frame, contour, -1, (0, 255, 0), 3)
+        
+            cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
+            cv2.moveWindow("window", 0, 0)
+            cv2.setWindowProperty("window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            cv2.imshow("window", frame)
+                        
             if cv2.waitKey(33) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                cap.release()
+                print_info("[TERMINATION] with Keyboard Interrupt")
+                cv2.destroyAllWindows(), cap.release()
+                break
     else:
         #kinect = o3d.io.AzureKinectSensor(o3d.io.AzureKinectSensorConfig())
         
@@ -51,7 +79,7 @@ def calibration(args: argparse.ArgumentParser) -> None:
         #u = ctypes.windll.user32
         #wdw_w, wdw_h = u.GetSystemMetrics(0), u.GetSystemMetrics(1)
         
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         print_info("[INFO] Created Window")
@@ -60,6 +88,10 @@ def calibration(args: argparse.ArgumentParser) -> None:
         
         # 1-way 
         ret, frame = cap.read()
+        if ret == False:
+            print_info("[FAIL] Camera Connection Failed", info='fail')
+            raise RuntimeError("[ERROR TERMINATION]")
+        
         print_info("[INFO] 1-way Captured, and Synchronization")
         time.sleep(2)
         print_info("[INFO] 1-way Sleep Down")   
@@ -115,8 +147,9 @@ def calibration(args: argparse.ArgumentParser) -> None:
             # Calibration using ChessBoard
         """
         
-        # Make Config File
+        # Make Json Config File
         pass
 
 if __name__ == '__main__':
+    # argparser
     calibration(argparse.ArgumentParser())
