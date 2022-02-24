@@ -12,6 +12,7 @@ import ctypes
 import screeninfo as sinfo
 
 import cv2
+import numpy as np
 import open3d as o3d # for MS Azure Kinect
 
 def print_info(msg: str, **kwargs) -> None:
@@ -76,45 +77,53 @@ def calibration(args: argparse.ArgumentParser) -> None:
         crt = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         
         # 2. Webcam
-        #u = ctypes.windll.user32
-        #wdw_w, wdw_h = u.GetSystemMetrics(0), u.GetSystemMetrics(1)
         
-        cap = cv2.VideoCapture(1)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         print_info("[INFO] Created Window")
+        
+        #screen_num = len(sinfo.get_monitors())
+        screen_x, screen_y = sinfo.get_monitors()[-1].x, sinfo.get_monitors()[-1].y
+        cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
+        cv2.moveWindow("window", screen_x, screen_y)
+        cv2.setWindowProperty("window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        print_info("[INFO] Set Window")
         
         error = 10.0
         
-        # 1-way 
+        ## 1-Way Projection
+        # Image Generation
+        u = ctypes.windll.user32
+        window_w, window_h = u.GetSystemMetrics(0), u.GetSystemMetrics(1)                
+        one_way_image = np.zeros((window_h, window_w, 3))  
+        cv2.rectangle(one_way_image, (0, 0), (window_w, window_h),
+                      color=(0, 255, 0), thickness=50)        
+        
+        # Image Projection
+        cv2.imshow("window", one_way_image)
+        cv2.waitKey(33)
+        cv2.imwrite("calibration/1-Way_Projection.jpg", one_way_image)
+        print_info("[INFO] 1-Way Proje1ction, and Synchronization")
+        time.sleep(2)
+        print_info("[INFO] 1-way Sleep Down")
+        ##
+        
+        ## ToDo Image Plot // 22.02.23
+        
+        ## 2-Way Capture         
         ret, frame = cap.read()
         if ret == False:
             print_info("[FAIL] Camera Connection Failed", info='fail')
             raise RuntimeError("[ERROR TERMINATION]")
         
-        print_info("[INFO] 1-way Captured, and Synchronization")
+        two_way_image = frame
+        cv2.imwrite("calibration/2-Way_Capture.jpg", two_way_image)
+        print_info("[INFO] 2-way Captured, and Synchronization")
         time.sleep(2)
-        print_info("[INFO] 1-way Sleep Down")   
+        print_info("[INFO] 2-way Sleep Down")   
         
-        #screen_num = len(sinfo.get_monitors())
-        screen_x, screen_y = sinfo.get_monitors()[-1].x, sinfo.get_monitors()[-1].y
-        
-        # 2. Webcam
-        cv2.namedWindow("window", cv2.WND_PROP_FULLSCREEN)
-        cv2.moveWindow("window", screen_x, screen_y)
-        cv2.setWindowProperty("window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        print_info("[INFO] Set Window")  
-        
-        # 2-way
-        cv2.imshow("window", frame)
-        cv2.waitKey(33)
-        print_info("[INFO] 2-way Shown, and Synchronization")
-        time.sleep(2)
-        cv2.imwrite("calibration/1-way.jpg", frame)
-        print_info("[INFO] 3-way Captued, and Synchronization") 
-        time.sleep(2)
-        
-        # 3-way
+        # 3-way Projection
         ret, frame = cap.read()
         cv2.imwrite("calibration/3-way.jpg", frame)
         print_info("[INFO] Done")
