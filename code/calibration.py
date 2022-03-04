@@ -16,6 +16,16 @@ import numpy as np
 import open3d as o3d # for MS Azure Kinect
 
 def print_info(msg: str, **kwargs) -> None:
+    """
+    msg :
+    \tstring value for standard print like print() function        
+    
+    kwargs :
+    \tinfo = "fail" -> means that semantic info if any conntection is failed
+    \t     =  None  -> means all other info for default
+    
+    return : None
+    """
     s: int = 2000
     
     for key, value in kwargs.items():
