@@ -80,13 +80,24 @@ def calibration(args: argparse.ArgumentParser) -> None:
     ## 1-1. Camera View Mode 
     if STATUS.upper() == 'VIEWe':
         
+        # Read Configuration
+        transform_m = 0
+        if os.path.isfile("calibration_config.json"):
+            with open("student_file.json", "r") as json_file:
+                tranform_m = json.load(json_file)    
+        
         while True:
             rgbd = kinect.capture_frame(True)
 
             if rgbd == None:
                 continue
 
-            frame = np.asarray(rgbd.color)[:,:,::-1]
+            frame = np.asarray(rgbd.depth)[:,:,::-1] # depth map
+            
+            # Image Indirect Transform using Color Homography Matrix
+            frame = cv2.warpPerspective(frame, transform_m, (frame.shape[1],
+                                                             frame.shape[0]))
+            
             cv2.imshow("window", frame)
                         
             if cv2.waitKey(33) & 0xFF == ord('q'):
@@ -138,7 +149,7 @@ def calibration(args: argparse.ArgumentParser) -> None:
         
         #cv2.drawContours(three_way_image, contour, -1, (0, 0, 255), 3)
     
-        #print("ddddddddddddd", contour)
+        #print("Contour Detection", contour)
         global ctn
         ctn = contour
         
@@ -151,10 +162,11 @@ def calibration(args: argparse.ArgumentParser) -> None:
         # Homography
         # [Top-Left], [Bottom-Left], [Bottom-Right], [Top-Right]
         point_src = box
-        point_dst = [[0,0],[1920,0],[],[]]
+        point_dst = [[0,0],[1920,0],[1920, 1080],[0, 1080]]
         
-        # 22-03-18
-        # ToDo : Image Transformation
+        # Configuration
+        matrix = {"Point Src" : point_src,
+                  "point Dst" : point_dst}
         #
         
         cv2.imshow("window", three_way_image)
@@ -166,7 +178,8 @@ def calibration(args: argparse.ArgumentParser) -> None:
         cv2.imwrite("0_3-way.jpg", three_way_image)
         
         # Make Json Config File
-        pass
+        with open("calibration_config.json", "w") as json_file:
+            json.dump(matrix, json_file)
 
 if __name__ == '__main__':
     # argparser
